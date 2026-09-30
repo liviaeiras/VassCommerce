@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="description"
+          content="VassCommerce - Tecnologia, livros e muito mais.">
+
+    <title>VassCommerce | Sua loja online</title>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+
+    <!-- =====================================================
+         CABEÇALHO
+    ====================================================== -->
+    <header class="cabecalho">
+
+        <div class="container cabecalho-conteudo">
+
+            <!-- Logo -->
+            <a href="#inicio" class="logo">
+                VASS<span>COMMERCE</span>
+            </a>
+
+            <!-- Pesquisa -->
+            <form class="pesquisa" id="formPesquisa">
+
+                <input type="search"
+                       id="campoPesquisa"
+                       placeholder="O que você está procurando?"
+                       aria-label="Pesquisar produtos">
+
+                <button type="submit" aria-label="Pesquisar">
+                    🔍
+                </button>
+
+            </form>
+
+            <!-- Ações -->
+            <nav class="acoes-cabecalho"
+                 aria-label="Ações do usuário">
+
+                <a href="#cliente" class="acao" id="botaoConta">
+                    <span>👤</span>
+                    <span id="textoConta">Minha conta</span>
+                </a>
+
+                <button type="button"
+                        class="acao botao-carrinho"
+                        id="botaoCarrinho">
+                    <span>🛒</span>
+                    <span>Carrinho</span>
+
+                    <span id="quantidadeCarrinho"
+                          class="contador-carrinho">
+                        0
+                    </span>
+                </button>
+
+            </nav>
+
+        </div>
+
+    </header>
+
+
+    <!-- =====================================================
+         MENU PRINCIPAL
+    ====================================================== -->
+    <nav class="menu-principal"
+         aria-label="Menu principal">
+
+        <div class="container menu-conteudo">
+
+            <a href="#inicio">Início</a>
+            <a href="#categorias">Categorias</a>
+            <a href="#produtos">Produtos</a>
+            <a href="#promocoes">Promoções</a>
+            <a href="#cliente">Minha conta</a>
+
+        </div>
+
+    </nav>
+
+
+    <!-- =====================================================
+         CONTEÚDO PRINCIPAL
+    ====================================================== -->
+    <main>
+
+        <!-- =================================================
+             BANNER PRINCIPAL
+        ================================================== -->
+        <section class="hero" id="inicio">
+
+            <div class="container hero-conteudo">
+
+                <div class="hero-texto">
+
+                    <span class="hero-destaque">
+                        ✦ BEM-VINDO À VASSCOMMERCE
+                    </span>
+
+                    <h1>
+                        Tecnologia, livros
+                        <span>e muito mais.</span>
+                    </h1>
+
+                    <p>
+                        Encontre produtos selecionados,
+                        ofertas especiais e tudo o que você
+                        precisa em um só lugar.
+                    </p>
+
+                    <a href="#categorias"
+                       class="botao botao-principal">
+                        Ver produtos
+                    </a>
+
+                </div>
+
+                <div class="hero-ilustracao"
+                     aria-hidden="true">
+                    <div class="icone-hero">
+                        🛍️
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             BENEFÍCIOS
+        ================================================== -->
+        <section class="beneficios">
+
+            <div class="container beneficios-grid">
+
+                <article class="beneficio">
+
+                    <span class="beneficio-icone">
+                        🚚
+                    </span>
+
+                    <div>
+                        <h3>Entrega rápida</h3>
+                        <p>
+                            Receba suas compras com praticidade.
+                        </p>
+                    </div>
+
+                </article>
+
+
+                <article class="beneficio">
+
+                    <span class="beneficio-icone">
+                        💳
+                    </span>
+
+                    <div>
+                        <h3>Pagamento fácil</h3>
+                        <p>
+                            Diferentes formas de pagamento.
+                        </p>
+                    </div>
+
+                </article>
+
+
+                <article class="beneficio">
+
+                    <span class="beneficio-icone">
+                        🔒
+                    </span>
+
+                    <div>
+                        <h3>Compra segura</h3>
+                        <p>
+                            Segurança durante sua navegação.
+                        </p>
+                    </div>
+
+                </article>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             CATEGORIAS
+        ================================================== -->
+        <section class="secao" id="categorias">
+
+            <div class="container">
+
+                <div class="titulo-secao">
+
+                    <div>
+                        <span class="subtitulo">
+                            EXPLORE
+                        </span>
+
+                        <h2>Categorias</h2>
+                    </div>
+
+                    <p>
+                        Escolha uma categoria para encontrar
+                        seus produtos.
+                    </p>
+
+                </div>
+
+
+                <!-- Preenchido pelo app.js -->
+                <div class="categorias-grid"
+                     id="listaCategorias">
+                    <p class="carregando">
+                        Carregando categorias...
+                    </p>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             PRODUTOS
+        ================================================== -->
+        <section class="secao secao-cinza"
+                 id="produtos">
+
+            <div class="container">
+
+                <div class="titulo-secao">
+
+                    <div>
+                        <span class="subtitulo">
+                            CONFIRA
+                        </span>
+
+                        <h2>Produtos</h2>
+                    </div>
+
+                    <p>
+                        Confira os produtos disponíveis
+                        na VassCommerce.
+                    </p>
+
+                </div>
+
+
+                <div class="barra-produtos">
+
+                    <span id="resultadoProdutos">
+                        Selecione uma categoria
+                    </span>
+
+                    <select id="ordenacaoProdutos"
+                            aria-label="Ordenar produtos">
+
+                        <option value="">
+                            Ordenar por
+                        </option>
+
+                        <option value="menor-preco">
+                            Menor preço
+                        </option>
+
+                        <option value="maior-preco">
+                            Maior preço
+                        </option>
+
+                        <option value="nome">
+                            Nome
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <!-- Preenchido pelo app.js -->
+                <div class="produtos-grid"
+                     id="listaProdutos">
+                    <p class="carregando">
+                        Selecione uma categoria para visualizar os produtos.
+                    </p>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             PROMOÇÕES
+        ================================================== -->
+        <section class="secao" id="promocoes">
+
+            <div class="container">
+
+                <div class="banner-promocao">
+
+                    <div>
+
+                        <span class="subtitulo subtitulo-claro">
+                            OFERTAS VASS
+                        </span>
+
+                        <h2>
+                            Produtos com preços especiais
+                        </h2>
+
+                        <p>
+                            Aproveite os produtos com
+                            preços promocionais.
+                        </p>
+
+                    </div>
+
+                    <a href="#categorias"
+                       class="botao botao-claro">
+                        Ver ofertas
+                    </a>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             ÁREA DO CLIENTE
+        ================================================== -->
+        <section class="secao secao-cinza"
+                 id="cliente">
+
+            <div class="container">
+
+                <div class="titulo-secao">
+
+                    <div>
+                        <span class="subtitulo">
+                            SUA CONTA
+                        </span>
+
+                        <h2>
+                            Área do cliente
+                        </h2>
+                    </div>
+
+                </div>
+
+
+                <div class="cliente-grid">
+
+                    <!-- DADOS -->
+                    <article class="cliente-card">
+
+                        <span class="cliente-icone">
+                            👤
+                        </span>
+
+                        <h3>Meus dados</h3>
+
+                        <p>
+                            Consulte as informações
+                            do seu cadastro.
+                        </p>
+
+                        <button type="button"
+                                class="botao-link"
+                                id="botaoDadosCliente">
+                            Consultar dados
+                        </button>
+
+                    </article>
+
+
+                    <!-- ENDEREÇO -->
+                    <article class="cliente-card">
+
+                        <span class="cliente-icone">
+                            📍
+                        </span>
+
+                        <h3>Meu endereço</h3>
+
+                        <p>
+                            Confira o endereço cadastrado
+                            na sua conta.
+                        </p>
+
+                        <button type="button"
+                                class="botao-link"
+                                id="botaoEndereco">
+                            Consultar endereço
+                        </button>
+
+                    </article>
+
+
+                    <!-- PAGAMENTO -->
+                    <article class="cliente-card">
+
+                        <span class="cliente-icone">
+                            💳
+                        </span>
+
+                        <h3>Formas de pagamento</h3>
+
+                        <p>
+                            Consulte os cartões cadastrados.
+                        </p>
+
+                        <button type="button"
+                                class="botao-link"
+                                id="botaoPagamento">
+                            Ver pagamentos
+                        </button>
+
+                    </article>
+
+
+                    <!-- PEDIDOS -->
+                    <article class="cliente-card">
+
+                        <span class="cliente-icone">
+                            📦
+                        </span>
+
+                        <h3>Meus pedidos</h3>
+
+                        <p>
+                            Consulte seus pedidos
+                            e produtos comprados.
+                        </p>
+
+                        <button type="button"
+                                class="botao-link"
+                                id="botaoPedidos">
+                            Ver pedidos
+                        </button>
+
+                    </article>
+
+                </div>
+
+
+                <div id="resultadoCliente"
+                     class="resultado-cliente"></div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <!-- =====================================================
+         CARRINHO
+    ====================================================== -->
+    <aside class="carrinho"
+           id="carrinho"
+           aria-label="Carrinho de compras">
+
+        <div class="carrinho-cabecalho">
+
+            <h2>Meu carrinho</h2>
+
+            <button type="button"
+                    id="fecharCarrinho"
+                    aria-label="Fechar carrinho">
+                ✕
+            </button>
+
+        </div>
+
+
+        <div class="carrinho-itens"
+             id="itensCarrinho">
+            <p>
+                Seu carrinho está vazio.
+            </p>
+        </div>
+
+
+        <div class="carrinho-rodape">
+
+            <div class="carrinho-total">
+
+                <span>Total</span>
+
+                <strong id="valorTotalCarrinho">
+                    R$ 0,00
+                </strong>
+
+            </div>
+
+
+            <button type="button"
+                    class="botao botao-finalizar"
+                    id="botaoFinalizar">
+                Finalizar compra
+            </button>
+
+        </div>
+
+    </aside>
+
+
+    <!-- =====================================================
+         OVERLAY
+    ====================================================== -->
+    <div class="overlay"
+         id="overlay"
+         aria-hidden="true"></div>
+
+    <div class="modal-autenticacao"
+         id="modalAutenticacao"
+         aria-hidden="true"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="tituloAutenticacao">
+        <div class="modal-autenticacao-conteudo">
+            <button type="button"
+                    class="modal-fechar"
+                    id="fecharAutenticacao"
+                    aria-label="Fechar autenticação">✕</button>
+
+            <div class="modal-cabecalho">
+                <span class="subtitulo">VASSCOMMERCE</span>
+                <h2 id="tituloAutenticacao">Entre para continuar</h2>
+                <p id="descricaoAutenticacao">Acesse sua conta ou crie um cadastro para finalizar sua compra.</p>
+            </div>
+
+            <div class="autenticacao-abas">
+                <button type="button" class="aba-autenticacao ativa" id="abaLogin">Entrar</button>
+                <button type="button" class="aba-autenticacao" id="abaCadastro">Criar conta</button>
+            </div>
+
+            <form id="formLogin" class="form-autenticacao">
+                <label for="loginEmail">E-mail</label>
+                <input type="email" id="loginEmail" required autocomplete="email">
+                <label for="loginSenha">Senha</label>
+                <input type="password" id="loginSenha" required minlength="6" autocomplete="current-password">
+                <button type="submit" class="botao botao-autenticacao">Entrar na conta</button>
+            </form>
+
+            <form id="formCadastro" class="form-autenticacao oculto">
+                <label for="cadastroNome">Nome completo</label>
+                <input type="text" id="cadastroNome" required minlength="2" autocomplete="name">
+                <label for="cadastroEmail">E-mail</label>
+                <input type="email" id="cadastroEmail" required autocomplete="email">
+                <label for="cadastroSenha">Senha</label>
+                <input type="password" id="cadastroSenha" required minlength="6" autocomplete="new-password">
+                <label for="cadastroCpf">CPF</label>
+                <input type="text" id="cadastroCpf" required placeholder="000.000.000-00">
+                <label for="cadastroNascimento">Data de nascimento</label>
+                <input type="date" id="cadastroNascimento" required>
+                <button type="submit" class="botao botao-autenticacao">Criar minha conta</button>
+            </form>
+
+            <p class="mensagem-autenticacao" id="mensagemAutenticacao" role="status"></p>
+        </div>
+    </div>
+
+
+    <!-- =====================================================
+         RODAPÉ
+    ====================================================== -->
+    <footer class="rodape">
+
+        <div class="container rodape-grid">
+
+            <!-- MARCA -->
+            <div>
+
+                <a href="#inicio"
+                   class="logo logo-rodape">
+                    VASS<span>COMMERCE</span>
+                </a>
+
+                <p>
+                    Tecnologia, livros e produtos
+                    em um só lugar.
+                </p>
+
+            </div>
+
+
+            <!-- NAVEGAÇÃO -->
+            <div>
+
+                <h3>Navegação</h3>
+
+                <a href="#inicio">
+                    Início
+                </a>
+
+                <a href="#categorias">
+                    Categorias
+                </a>
+
+                <a href="#produtos">
+                    Produtos
+                </a>
+
+                <a href="#promocoes">
+                    Promoções
+                </a>
+
+            </div>
+
+
+            <!-- CLIENTE -->
+            <div>
+
+                <h3>Cliente</h3>
+
+                <a href="#cliente">
+                    Minha conta
+                </a>
+
+                <a href="#cliente">
+                    Meus pedidos
+                </a>
+
+                <a href="#cliente">
+                    Endereço
+                </a>
+
+            </div>
+
+
+            <!-- SOBRE -->
+            <div>
+
+                <h3>VassCommerce</h3>
+
+                <p>
+                    Projeto desenvolvido com
+                    ASP.NET Core e .NET 8.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="rodape-inferior">
+
+            <div class="container">
+
+                <p>
+                    &copy; 2026 VassCommerce.
+                    Projeto acadêmico.
+                </p>
+
+            </div>
+
+        </div>
+
+    </footer>
+
+
+    <!-- JavaScript -->
+    <script src="/js/app.js?v=10script>"></script>
+
+</body>
+
+</html>
