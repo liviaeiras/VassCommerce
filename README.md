@@ -24,7 +24,16 @@ Defina a conexão SQL Server em `ConnectionStrings:DefaultConnection` usando
 User Secrets ou `ConnectionStrings__DefaultConnection` no ambiente. Para
 provisionar um administrador inicial opcional, configure também `Admin:Email`
 e `Admin:Password` fora do repositório; o cadastro público sempre cria somente
-clientes. Em bancos de desenvolvimento existentes, rotacione ou remova a conta
+clientes. Para desenvolvimento local, configure-os pelo User Secrets:
+
+```powershell
+dotnet user-secrets set "Admin:Email" "admin@example.com"
+dotnet user-secrets set "Admin:Password" "SUBSTITUA-POR-UMA-SENHA-FORTE"
+```
+
+O seed só provisiona o administrador quando ambas as configurações estão
+presentes e pode ser executado novamente sem criar administradores duplicados.
+Em bancos de desenvolvimento existentes, rotacione ou remova a conta
 administrativa legada antes de disponibilizar a aplicação.
 
 ## Banco de dados

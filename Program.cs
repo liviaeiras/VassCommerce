@@ -79,43 +79,11 @@ builder.Services
 
 // Configuração do JWT
 var jwt = builder.Configuration.GetSection("Jwt");
+JwtConfigurationValidator.Validate(jwt);
 
-var jwtKey = jwt["Key"]
-    ?? throw new InvalidOperationException(
-        "Configure Jwt:Key usando User Secrets ou uma variável de ambiente."
-    );
+var jwtKey = jwt["Key"]!;
 var jwtIssuer = jwt["Issuer"];
 var jwtAudience = jwt["Audience"];
-var jwtExpiresMinutes = jwt.GetValue<int?>("ExpiresMinutes");
-
-if (string.IsNullOrWhiteSpace(jwtKey) ||
-    Encoding.UTF8.GetByteCount(jwtKey) < 32)
-{
-    throw new InvalidOperationException(
-        "Jwt:Key deve conter pelo menos 32 bytes. Configure-a usando User Secrets ou uma variável de ambiente."
-    );
-}
-
-if (string.IsNullOrWhiteSpace(jwtIssuer))
-{
-    throw new InvalidOperationException(
-        "Configure Jwt:Issuer antes de iniciar a API."
-    );
-}
-
-if (string.IsNullOrWhiteSpace(jwtAudience))
-{
-    throw new InvalidOperationException(
-        "Configure Jwt:Audience antes de iniciar a API."
-    );
-}
-
-if (jwtExpiresMinutes is null or <= 0)
-{
-    throw new InvalidOperationException(
-        "Jwt:ExpiresMinutes deve ser um número maior que zero."
-    );
-}
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

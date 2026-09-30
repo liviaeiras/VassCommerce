@@ -12,8 +12,10 @@ namespace VassCommerce.Api.Tests;
 
 public sealed class AuthenticationApiFactory : WebApplicationFactory<Program>
 {
-    private static readonly string TestJwtKey =
+    private static readonly string TestJwtKeyValue =
         Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+
+    public static string JwtSigningKey => TestJwtKeyValue;
 
     private readonly string _databaseName =
         $"VassCommerceTests-{Guid.NewGuid():N}";
@@ -22,7 +24,7 @@ public sealed class AuthenticationApiFactory : WebApplicationFactory<Program>
     {
         Environment.SetEnvironmentVariable(
             "Jwt__Key",
-            TestJwtKey
+            TestJwtKeyValue
         );
         Environment.SetEnvironmentVariable(
             "Jwt__Issuer",

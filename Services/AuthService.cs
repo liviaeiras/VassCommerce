@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Text;
 using VassCommerce.Api.Data;
 using VassCommerce.Api.Models;
 
@@ -11,6 +12,11 @@ public class AuthService(AppDbContext db)
         string senha
     )
     {
+        if (Encoding.UTF8.GetByteCount(senha) > 72)
+        {
+            return null;
+        }
+
         var emailNormalizado = NormalizeEmail(email);
         var usuario = await db.Usuarios.FirstOrDefaultAsync(
             item => item.Email.ToLower() == emailNormalizado
