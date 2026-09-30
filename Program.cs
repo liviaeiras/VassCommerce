@@ -19,6 +19,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 // Injeção de dependência dos serviços
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<JwtTokenService>();
 builder.Services.AddScoped<ClienteService>();
 builder.Services.AddScoped<ProdutoService>();
 builder.Services.AddScoped<CategoriaService>();
@@ -81,8 +82,40 @@ var jwt = builder.Configuration.GetSection("Jwt");
 
 var jwtKey = jwt["Key"]
     ?? throw new InvalidOperationException(
-        "A chave JWT não foi configurada."
+        "Configure Jwt:Key usando User Secrets ou uma variável de ambiente."
     );
+var jwtIssuer = jwt["Issuer"];
+var jwtAudience = jwt["Audience"];
+var jwtExpiresMinutes = jwt.GetValue<int?>("ExpiresMinutes");
+
+if (string.IsNullOrWhiteSpace(jwtKey) ||
+    Encoding.UTF8.GetByteCount(jwtKey) < 32)
+{
+    throw new InvalidOperationException(
+        "Jwt:Key deve conter pelo menos 32 bytes. Configure-a usando User Secrets ou uma variável de ambiente."
+    );
+}
+
+if (string.IsNullOrWhiteSpace(jwtIssuer))
+{
+    throw new InvalidOperationException(
+        "Configure Jwt:Issuer antes de iniciar a API."
+    );
+}
+
+if (string.IsNullOrWhiteSpace(jwtAudience))
+{
+    throw new InvalidOperationException(
+        "Configure Jwt:Audience antes de iniciar a API."
+    );
+}
+
+if (jwtExpiresMinutes is null or <= 0)
+{
+    throw new InvalidOperationException(
+        "Jwt:ExpiresMinutes deve ser um número maior que zero."
+    );
+}
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -95,8 +128,8 @@ builder.Services
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
 
-            ValidIssuer = jwt["Issuer"],
-            ValidAudience = jwt["Audience"],
+            ValidIssuer = jwtIssuer,
+            ValidAudience = jwtAudience,
 
             IssuerSigningKey = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(jwtKey)
@@ -127,7 +160,8 @@ builder.Services.AddSwaggerGen(options =>
         new OpenApiSecurityScheme
         {
             Name = "Authorization",
-            Description = "Informe somente o token JWT.",
+            Description =
+                "Informe somente o token JWT, sem o prefixo Bearer.",
             Type = SecuritySchemeType.Http,
             Scheme = "bearer",
             BearerFormat = "JWT",
@@ -135,22 +169,7 @@ builder.Services.AddSwaggerGen(options =>
         }
     );
 
-    options.AddSecurityRequirement(
-        new OpenApiSecurityRequirement
-        {
-            {
-                new OpenApiSecurityScheme
-                {
-                    Reference = new OpenApiReference
-                    {
-                        Type = ReferenceType.SecurityScheme,
-                        Id = "Bearer"
-                    }
-                },
-                Array.Empty<string>()
-            }
-        }
-    );
+    options.OperationFilter<AuthorizeCheckOperationFilter>();
 });
 
 var app = builder.Build();
@@ -158,12 +177,13 @@ var app = builder.Build();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 // Aplica as migrations e executa o Seed
-using (var scope = app.Services.CreateScope())
+if (!app.Environment.IsEnvironment("Testing"))
 {
+    using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
     db.Database.Migrate();
-    AppDbContext.Seed(db);
+    AppDbContext.Seed(db, app.Configuration);
 }
 
 // Swagger
@@ -183,3 +203,5 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+public partial class Program { }
