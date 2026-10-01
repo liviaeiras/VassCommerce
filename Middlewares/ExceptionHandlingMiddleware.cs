@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Microsoft.EntityFrameworkCore;
 
 namespace VassCommerce.Api.Middlewares;
 
@@ -54,13 +53,6 @@ public sealed class ExceptionHandlingMiddleware(
     {
         var (status, title, detail, type) = exception switch
         {
-            DbUpdateException =>
-                (
-                    StatusCodes.Status409Conflict,
-                    "Conflito ao salvar os dados",
-                    "A operação não pôde ser concluída devido a um conflito com os dados existentes.",
-                    "https://httpstatuses.com/409"
-                ),
             BusinessRuleException =>
                 (
                     StatusCodes.Status400BadRequest,

@@ -1,9 +1,8 @@
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Data.SqlClient;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
+using Microsoft.EntityFrameworkCore;
 using VassCommerce.Api.Data;
 using VassCommerce.Api.Dtos;
 using VassCommerce.Api.Models;
@@ -15,77 +14,90 @@ namespace VassCommerce.Api.Controllers;
 [Route("auth")]
 public class AuthController(
     AppDbContext db,
-    IConfiguration configuration,
     AuthService authService,
+    JwtTokenService jwtTokenService,
     ClienteService clienteService
 ) : ControllerBase
 {
-    // Login de cliente ou administrador
+    [AllowAnonymous]
     [HttpPost("login")]
-    public ActionResult<AuthResponse> Login(LoginRequest request)
+    public async Task<ActionResult<AuthResponse>> Login(
+        [FromBody] LoginRequest request
+    )
     {
-        var email = request.Email.Trim().ToLowerInvariant();
-
-        var user = authService.Validate(
-            email,
+        var usuario = await authService.ValidateAsync(
+            AuthService.NormalizeEmail(request.Email),
             request.Senha
         );
 
-        if (user is null)
+        if (usuario is null)
         {
-            return Unauthorized(new
-            {
-                mensagem = "E-mail ou senha inválidos."
-            });
+            return InvalidCredentials();
         }
 
-        var cliente = db.Clientes
-            .FirstOrDefault(x => x.UsuarioId == user.Id);
+        var cliente = await db.Clientes
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                item => item.UsuarioId == usuario.Id
+            );
+        var administrador = await db.Administradores
+            .AsNoTracking()
+            .AnyAsync(
+                item => item.UsuarioId == usuario.Id
+            );
 
-        var administrador = db.Administradores
-            .FirstOrDefault(x => x.UsuarioId == user.Id);
+        var perfil = administrador
+            ? "Administrador"
+            : cliente is not null
+                ? "Cliente"
+                : null;
 
-        string perfil;
-
-        if (administrador is not null)
+        if (perfil is null)
         {
-            perfil = "Administrador";
-        }
-        else if (cliente is not null)
-        {
-            perfil = "Cliente";
-        }
-        else
-        {
-            return Unauthorized(new
-            {
-                mensagem = "O usuário não possui um perfil válido."
-            });
+            return InvalidCredentials();
         }
 
-        var resposta = CreateToken(
-            user,
-            cliente?.Id ?? 0,
-            perfil
+        return Ok(
+            jwtTokenService.CreateToken(
+                usuario,
+                cliente?.Id ?? 0,
+                perfil
+            )
         );
-
-        return Ok(resposta);
     }
 
-    // Cadastro público de cliente
+    [AllowAnonymous]
     [HttpPost("register")]
     [HttpPost("registro")]
-    public ActionResult<AuthResponse> Register(
-        RegisterRequest request
+    public async Task<ActionResult<AuthResponse>> Register(
+        [FromBody] RegisterRequest request
     )
     {
-        var email = request.Email
-            .Trim()
-            .ToLowerInvariant();
-
+        var nomeCompleto = request.NomeCompleto.Trim();
+        var email = AuthService.NormalizeEmail(request.Email);
         var cpf = request.Cpf.Trim();
 
-        if (db.Usuarios.Any(x => x.Email == email))
+        if (nomeCompleto.Length < 2 || string.IsNullOrWhiteSpace(cpf))
+        {
+            return BadRequest(new
+            {
+                mensagem =
+                    "Nome e CPF devem conter valores válidos."
+            });
+        }
+
+        if (System.Text.Encoding.UTF8.GetByteCount(request.Senha) > 72)
+        {
+            return BadRequest(new
+            {
+                mensagem =
+                    "A senha deve ter no máximo 72 bytes em UTF-8."
+            });
+        }
+
+        if (await db.Usuarios.AnyAsync(
+                usuario => usuario.Email.ToLower() == email
+            ))
         {
             return Conflict(new
             {
@@ -93,7 +105,9 @@ public class AuthController(
             });
         }
 
-        if (db.Clientes.Any(x => x.Cpf == cpf))
+        if (await db.Clientes.AnyAsync(
+                cliente => cliente.Cpf == cpf
+            ))
         {
             return Conflict(new
             {
@@ -101,61 +115,50 @@ public class AuthController(
             });
         }
 
-        using var transaction =
-            db.Database.BeginTransaction();
+        var agora = DateTime.UtcNow;
+        var usuarioNovo = new Usuario
+        {
+            NomeCompleto = nomeCompleto,
+            Email = email,
+            Senha = authService.HashPassword(request.Senha),
+            FotoUrl = string.Empty,
+            DataCadastro = agora,
+            DataUltimaAtualizacao = agora
+        };
+        var clienteNovo = new Cliente
+        {
+            Usuario = usuarioNovo,
+            Cpf = cpf,
+            DataNascimento = request.DataNascimento!.Value
+        };
 
+        db.Clientes.Add(clienteNovo);
         try
         {
-            var now = DateTime.UtcNow;
-
-            var user = new Usuario
-            {
-                NomeCompleto = request.NomeCompleto.Trim(),
-                Email = email,
-                Senha = BCrypt.Net.BCrypt.HashPassword(
-                    request.Senha
-                ),
-                FotoUrl = string.Empty,
-                DataCadastro = now,
-                DataUltimaAtualizacao = now
-            };
-
-            db.Usuarios.Add(user);
-            db.SaveChanges();
-
-            var cliente = new Cliente
-            {
-                UsuarioId = user.Id,
-                Cpf = cpf,
-                DataNascimento = request.DataNascimento
-            };
-
-            db.Clientes.Add(cliente);
-            db.SaveChanges();
-
-            // Todo cadastro público gera um cliente.
-            var resposta = CreateToken(
-                user,
-                cliente.Id,
-                "Cliente"
-            );
-
-            transaction.Commit();
-
-            return StatusCode(
-                StatusCodes.Status201Created,
-                resposta
-            );
+            await db.SaveChangesAsync();
         }
-        catch
+        catch (DbUpdateException exception)
+            when (IsUniqueConstraintViolation(exception))
         {
-            transaction.Rollback();
-            throw;
+            return Conflict(new
+            {
+                mensagem = "E-mail ou CPF já cadastrado."
+            });
         }
+
+        var resposta = jwtTokenService.CreateToken(
+            usuarioNovo,
+            clienteNovo.Id,
+            "Cliente"
+        );
+
+        return StatusCode(
+            StatusCodes.Status201Created,
+            resposta
+        );
     }
 
-    // Retorna os dados do cliente autenticado
-    [Authorize]
+    [Authorize(Roles = "Cliente")]
     [HttpGet("/cliente/me")]
     public async Task<IActionResult> Me()
     {
@@ -172,9 +175,7 @@ public class AuthController(
         }
 
         var user = await clienteService.UserAsync(userId);
-
-        var cliente =
-            await clienteService.GetByUserAsync(userId);
+        var cliente = await clienteService.GetByUserAsync(userId);
 
         if (user is null || cliente is null)
         {
@@ -197,133 +198,44 @@ public class AuthController(
         return Ok(resultado);
     }
 
-    // Endpoint temporário para visualizar as claims do token
     [Authorize]
     [HttpGet("perfil")]
     public IActionResult Perfil()
     {
-        var userId = User.FindFirstValue(
-            ClaimTypes.NameIdentifier
-        );
-
-        var nome = User.FindFirstValue(
-            ClaimTypes.Name
-        );
-
-        var email = User.FindFirstValue(
-            ClaimTypes.Email
-        );
-
-        var perfil = User.FindFirstValue(
-            ClaimTypes.Role
-        );
-
         return Ok(new
         {
-            userId,
-            nome,
-            email,
-            perfil
+            userId = User.FindFirstValue(
+                ClaimTypes.NameIdentifier
+            ),
+            nome = User.FindFirstValue(ClaimTypes.Name),
+            email = User.FindFirstValue(ClaimTypes.Email),
+            perfil = User.FindFirstValue(ClaimTypes.Role)
         });
     }
 
-    // Endpoint temporário exclusivo para administradores
     [Authorize(Roles = "Administrador")]
     [HttpGet("area-administrativa")]
     public IActionResult AreaAdministrativa()
     {
         return Ok(new
         {
-            mensagem =
-                "Acesso administrativo autorizado."
+            mensagem = "Acesso administrativo autorizado."
         });
     }
 
-    // Criação do token JWT
-    private AuthResponse CreateToken(
-        Usuario user,
-        int clienteId,
-        string perfil
+    private UnauthorizedObjectResult InvalidCredentials()
+    {
+        return Unauthorized(new
+        {
+            mensagem = "E-mail ou senha inválidos."
+        });
+    }
+
+    private static bool IsUniqueConstraintViolation(
+        DbUpdateException exception
     )
     {
-        var section =
-            configuration.GetSection("Jwt");
-
-        var key = section["Key"]
-            ?? throw new InvalidOperationException(
-                "A chave JWT não foi configurada."
-            );
-
-        var issuer = section["Issuer"]
-            ?? throw new InvalidOperationException(
-                "O emissor JWT não foi configurado."
-            );
-
-        var audience = section["Audience"]
-            ?? throw new InvalidOperationException(
-                "A audiência JWT não foi configurada."
-            );
-
-        var expires = DateTime.UtcNow.AddMinutes(
-            section.GetValue<int>(
-                "ExpiresMinutes",
-                120
-            )
-        );
-
-        var claims = new[]
-        {
-            new Claim(
-                JwtRegisteredClaimNames.Sub,
-                user.Id.ToString()
-            ),
-
-            new Claim(
-                ClaimTypes.NameIdentifier,
-                user.Id.ToString()
-            ),
-
-            new Claim(
-                ClaimTypes.Email,
-                user.Email
-            ),
-
-            new Claim(
-                ClaimTypes.Name,
-                user.NomeCompleto
-            ),
-
-            new Claim(
-                ClaimTypes.Role,
-                perfil
-            )
-        };
-
-        var securityKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(key)
-        );
-
-        var credentials = new SigningCredentials(
-            securityKey,
-            SecurityAlgorithms.HmacSha256
-        );
-
-        var token = new JwtSecurityToken(
-            issuer: issuer,
-            audience: audience,
-            claims: claims,
-            expires: expires,
-            signingCredentials: credentials
-        );
-
-        return new AuthResponse
-        {
-            Token = new JwtSecurityTokenHandler()
-                .WriteToken(token),
-
-            ClienteId = clienteId,
-            NomeCompleto = user.NomeCompleto,
-            ExpiraEm = expires
-        };
+        return exception.GetBaseException() is SqlException sqlException &&
+            sqlException.Number is 2601 or 2627;
     }
 }

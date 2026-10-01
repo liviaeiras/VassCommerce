@@ -605,33 +605,4 @@ public class CartaoService(AppDbContext db)
     }
 }
 
-public class AuthService(AppDbContext db)
-{
-    public Usuario? Validate(
-        string email,
-        string senha
-    )
-    {
-        var emailNormalizado = email
-            .Trim()
-            .ToLowerInvariant();
-
-        var usuario = db.Usuarios.FirstOrDefault(
-            usuario => usuario.Email == emailNormalizado
-        );
-
-        if (usuario is null)
-        {
-            return null;
-        }
-
-        var senhaValida = BCrypt.Net.BCrypt.Verify(
-            senha,
-            usuario.Senha
-        );
-
-        return senhaValida ? usuario : null;
-    }
-}
-
 }

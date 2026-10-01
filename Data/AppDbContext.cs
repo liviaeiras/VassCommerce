@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 using VassCommerce.Api.Models;
 
 namespace VassCommerce.Api.Data;
@@ -103,7 +104,10 @@ public class AppDbContext(
             .OnDelete(DeleteBehavior.Restrict);
     }
 
-    public static void Seed(AppDbContext db)
+    public static void Seed(
+        AppDbContext db,
+        IConfiguration configuration
+    )
     {
         var agora = DateTime.UtcNow;
 
@@ -250,73 +254,105 @@ if (!barraMansaExiste)
 
         db.SaveChanges();
 
-        CriarAdministradorDesenvolvimento(
+        ProvisionarAdministradorConfigurado(
             db,
+            configuration,
             informatica,
             agora
         );
     }
 
-    private static void CriarAdministradorDesenvolvimento(
+    private static void ProvisionarAdministradorConfigurado(
         AppDbContext db,
+        IConfiguration configuration,
         Categoria categoria,
         DateTime agora
     )
     {
-        const string emailAdministrador =
-            "admin@vasscommerce.com";
+        var email = configuration["Admin:Email"]?
+            .Trim()
+            .ToLowerInvariant();
+        var senha = configuration["Admin:Password"];
 
-        var usuarioAdministrador = db.Usuarios.FirstOrDefault(
-            usuario => usuario.Email == emailAdministrador
-        );
-
-        // Cria o usuário administrativo caso não exista.
-        if (usuarioAdministrador is null)
-        {
-            usuarioAdministrador = new Usuario
-            {
-                NomeCompleto =
-                    "Administrador VassCommerce",
-                Email = emailAdministrador,
-                Senha = BCrypt.Net.BCrypt.HashPassword(
-                    "Admin@12345"
-                ),
-                FotoUrl = string.Empty,
-                DataCadastro = agora,
-                DataUltimaAtualizacao = agora
-            };
-
-            db.Usuarios.Add(usuarioAdministrador);
-            db.SaveChanges();
-        }
-
-        var administradorExiste =
-            db.Administradores.Any(
-                administrador =>
-                    administrador.UsuarioId ==
-                    usuarioAdministrador.Id
-            );
-
-        var categoriaJaPossuiAdministrador =
-            db.Administradores.Any(
-                administrador =>
-                    administrador.CategoriaId ==
-                    categoria.Id
-            );
-
-        if (administradorExiste ||
-            categoriaJaPossuiAdministrador)
+        if (string.IsNullOrWhiteSpace(email) &&
+            string.IsNullOrWhiteSpace(senha))
         {
             return;
         }
 
-        var administrador = new Administrador
+        if (string.IsNullOrWhiteSpace(email) ||
+            string.IsNullOrWhiteSpace(senha))
         {
-            UsuarioId = usuarioAdministrador.Id,
-            CategoriaId = categoria.Id
-        };
+            throw new InvalidOperationException(
+                "Configure Admin:Email e Admin:Password juntos para provisionar o administrador."
+            );
+        }
 
-        db.Administradores.Add(administrador);
+        if (!new EmailAddressAttribute().IsValid(email) ||
+            senha.Length < 8 ||
+            System.Text.Encoding.UTF8.GetByteCount(senha) > 72)
+        {
+            throw new InvalidOperationException(
+                "As configurações Admin:Email e Admin:Password não atendem aos requisitos."
+            );
+        }
+
+        var usuario = db.Usuarios.FirstOrDefault(
+            item => item.Email.ToLower() == email
+        );
+
+        if (usuario is null)
+        {
+            usuario = new Usuario
+            {
+                NomeCompleto = "Administrador VassCommerce",
+                Email = email,
+                Senha = BCrypt.Net.BCrypt.HashPassword(senha),
+                FotoUrl = string.Empty,
+                DataCadastro = agora,
+                DataUltimaAtualizacao = agora
+            };
+            db.Usuarios.Add(usuario);
+            db.SaveChanges();
+        }
+        else if (db.Clientes.Any(
+                     cliente => cliente.UsuarioId == usuario.Id
+                 ))
+        {
+            throw new InvalidOperationException(
+                "O e-mail configurado para administrador já pertence a um cliente."
+            );
+        }
+        else
+        {
+            usuario.Senha = BCrypt.Net.BCrypt.HashPassword(senha);
+            usuario.DataUltimaAtualizacao = agora;
+            db.SaveChanges();
+        }
+
+        var administrador = db.Administradores.FirstOrDefault(
+            item => item.UsuarioId == usuario.Id
+        );
+
+        if (administrador is not null)
+        {
+            return;
+        }
+
+        if (db.Administradores.Any(
+                item => item.CategoriaId == categoria.Id
+            ))
+        {
+            throw new InvalidOperationException(
+                "A categoria padrão já está associada a outro administrador."
+            );
+        }
+
+        db.Administradores.Add(new Administrador
+        {
+            UsuarioId = usuario.Id,
+            CategoriaId = categoria.Id
+        });
         db.SaveChanges();
     }
 }

@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using VassCommerce.Api.Data;
 using VassCommerce.Api.Dtos;
@@ -6,6 +8,7 @@ namespace VassCommerce.Api.Controllers;
 
 [ApiController]
 [Route("cliente")]
+[Authorize(Roles = "Cliente")]
 public class ClienteController : ControllerBase
 {
     private readonly AppDbContext _db;
@@ -23,9 +26,12 @@ public class ClienteController : ControllerBase
     public ActionResult<ClienteDto> GetCliente(int id)
     {
         var cliente = _db.Clientes.FirstOrDefault(c => c.Id == id);
-        if (cliente is null)
+        if (cliente is null || !ClientePertenceAoUsuario(id))
         {
-            return NotFound(new { mensagem = $"Cliente {id} não encontrado." });
+            return NotFound(new
+            {
+                mensagem = $"Cliente {id} não encontrado."
+            });
         }
 
         var usuario = _db.Usuarios.First(u => u.Id == cliente.UsuarioId);
@@ -50,7 +56,7 @@ public class ClienteController : ControllerBase
     [HttpGet("{idcliente}/formas-de-pagamento")]
     public ActionResult<IEnumerable<CartaoDto>> GetFormasDePagamento(int idcliente)
     {
-        if (!ClienteExiste(idcliente))
+        if (!ClientePertenceAoUsuario(idcliente))
         {
             return NotFound(new { mensagem = $"Cliente {idcliente} não encontrado." });
         }
@@ -75,7 +81,7 @@ public class ClienteController : ControllerBase
     [HttpGet("{idcliente}/endereco")]
     public ActionResult<EnderecoDto> GetEndereco(int idcliente)
     {
-        if (!ClienteExiste(idcliente))
+        if (!ClientePertenceAoUsuario(idcliente))
         {
             return NotFound(new { mensagem = $"Cliente {idcliente} não encontrado." });
         }
@@ -105,6 +111,17 @@ public class ClienteController : ControllerBase
         return Ok(dto);
     }
 
-    private bool ClienteExiste(int idcliente) => _db.Clientes.Any(c => c.Id == idcliente);
-}
+    private bool ClientePertenceAoUsuario(int clienteId)
+    {
+        var claimId = User.FindFirstValue(
+            ClaimTypes.NameIdentifier
+        );
 
+        return int.TryParse(claimId, out var usuarioId) &&
+            _db.Clientes.Any(
+                cliente =>
+                    cliente.Id == clienteId &&
+                    cliente.UsuarioId == usuarioId
+            );
+    }
+}

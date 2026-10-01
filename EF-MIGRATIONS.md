@@ -1,13 +1,15 @@
 # EF Core database setup
 
-The API is configured for SQL Server using `ConnectionStrings:DefaultConnection`.
-After installing the EF CLI (`dotnet tool install --global dotnet-ef`), create and
-apply migrations from the project directory:
+The API is configured for SQL Server using
+`ConnectionStrings:DefaultConnection`. Configure the connection string outside
+the repository. After installing the EF CLI
+(`dotnet tool install --global dotnet-ef`), apply the existing migrations from
+the project directory:
 
 ```powershell
-dotnet ef migrations add InitialCreate
 dotnet ef database update
 ```
 
-Startup currently calls `EnsureCreated` so a fresh development database works
-without the CLI; production deployments should use the migration commands.
+The API applies pending migrations at startup as well. Do not edit migrations
+that have already been applied. The authentication changes did not alter the
+persistent model and therefore do not require a new migration.
